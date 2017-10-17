@@ -11,6 +11,7 @@ from warpctc_pytorch import CTCLoss
 import os
 import utils
 import dataset
+import keys
 
 import models.crnn as crnn
 
@@ -66,16 +67,17 @@ else:
 sampler = None
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=opt.batchSize,
-    shuffle=True, sampler=sampler,
+    shuffle=False, sampler=sampler,
     num_workers=int(opt.workers),
     collate_fn=dataset.alignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio=opt.keep_ratio))
 test_dataset = dataset.lmdbDataset(
     root=opt.valroot, transform=dataset.resizeNormalize((opt.imgW, opt.imgH)))
 
-nclass = len(opt.alphabet) + 1
+alphabet = keys.alphabet
+#alphabet = opt.alphabet
+nclass = len(alphabet) + 1
+converter = utils.strLabelConverter(alphabet)
 nc = 1
-
-converter = utils.strLabelConverter(opt.alphabet)
 criterion = CTCLoss()
 
 
@@ -139,7 +141,7 @@ def val(net, dataset, criterion, max_iter=100):
 
     net.eval()
     data_loader = torch.utils.data.DataLoader(
-        dataset, shuffle=True, batch_size=opt.batchSize, num_workers=int(opt.workers))
+        dataset, shuffle=False, batch_size=opt.batchSize, num_workers=int(opt.workers))
     val_iter = iter(data_loader)
 
     i = 0
@@ -151,6 +153,7 @@ def val(net, dataset, criterion, max_iter=100):
         data = val_iter.next()
         i += 1
         cpu_images, cpu_texts = data
+        #cpu_texts = [text.decode('utf-8') for text in cpu_texts]
         batch_size = cpu_images.size(0)
         utils.loadData(image, cpu_images)
         t, l = converter.encode(cpu_texts)
@@ -180,6 +183,7 @@ def val(net, dataset, criterion, max_iter=100):
 def trainBatch(net, criterion, optimizer):
     data = train_iter.next()
     cpu_images, cpu_texts = data
+    #cpu_texts = [text.decode('utf-8') for text in cpu_texts]
     batch_size = cpu_images.size(0)
     utils.loadData(image, cpu_images)
     t, l = converter.encode(cpu_texts)
