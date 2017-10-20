@@ -42,7 +42,6 @@ class strLabelConverter(object):
             result = []
             cnt = 0
             for w in text:
-                print w
                 index = self.dict[w]
                 result.append(index)
 

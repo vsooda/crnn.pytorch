@@ -2,7 +2,7 @@ import os
 import lmdb # install lmdb by "pip install lmdb"
 import cv2
 import re
-import Image
+from PIL import Image
 import numpy as np
 import imghdr
 
@@ -43,8 +43,9 @@ def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkV
     cache = {}
     cnt = 1
     for i in xrange(nSamples):
-        imagePath = '../data/val/'+''.join(imagePathList[i]).split()[0].replace('\n','').replace('\r\n','')
+        imagePath = '../data/zh/img/'+''.join(imagePathList[i]).split()[0].replace('\n','').replace('\r\n','')
         label = ''.join(labelList[i])
+        print(label)
         if not os.path.exists(imagePath):
             print('%s does not exist' % imagePath)
             continue
@@ -76,8 +77,8 @@ def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkV
 
 
 if __name__ == '__main__':
-    outputPath = "../data/val_lmdb"
-    imgdata = open("../data/val/gt.txt")
+    outputPath = "../data/zh/val_lmdb"
+    imgdata = open("../data/zh/test.txt")
     imagePathList = list(imgdata)
 
     labelList = []
