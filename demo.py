@@ -9,7 +9,7 @@ import models.crnn as crnn
 
 
 model_path = './data/crnn.pth'
-img_path = './data/demo.png'
+img_path = './data/demo.jpg'
 alphabet = keys.alphabet
 nclass = len(alphabet) + 1
 print nclass
