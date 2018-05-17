@@ -72,10 +72,12 @@ class resizeNormalize(object):
         self.size = size
         self.interpolation = interpolation
         self.toTensor = transforms.ToTensor()
+        self.transform = transforms.Compose([transforms.ColorJitter(0.5,0.5,0.5,0.5), transforms.ToTensor()])
 
     def __call__(self, img):
         img = img.resize(self.size, self.interpolation)
-        img = self.toTensor(img)
+        #img = self.toTensor(img)
+        img = self.transform(img)
         img.sub_(0.5).div_(0.5)
         return img
 

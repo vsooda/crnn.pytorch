@@ -25,7 +25,7 @@ parser.add_argument('--imgH', type=int, default=32, help='the height of the inpu
 parser.add_argument('--imgW', type=int, default=100, help='the width of the input image to network')
 parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
 parser.add_argument('--niter', type=int, default=50000, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=0.00005, help='learning rate for Critic, default=0.00005')
+parser.add_argument('--lr', type=float, default=0.0001, help='learning rate for Critic, default=0.00005')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
@@ -34,9 +34,9 @@ parser.add_argument('--crnn', default='', help="path to crnn (to continue traini
 parser.add_argument('--alphabet', type=str, default='0123456789abcdefghijklmnopqrstuvwxyz')
 parser.add_argument('--experiment', default=None, help='Where to store samples and models')
 parser.add_argument('--displayInterval', type=int, default=100, help='Interval to be displayed')
-parser.add_argument('--n_test_disp', type=int, default=20, help='Number of samples to display when test')
-parser.add_argument('--valInterval', type=int, default=600, help='Interval to be displayed')
-parser.add_argument('--saveInterval', type=int, default=5, help='Interval to be displayed')
+parser.add_argument('--n_test_disp', type=int, default=10, help='Number of samples to display when test')
+parser.add_argument('--valInterval', type=int, default=500, help='Interval to be displayed')
+parser.add_argument('--saveInterval', type=int, default=1, help='Interval to be displayed')
 parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
 parser.add_argument('--adadelta', action='store_true', help='Whether to use adadelta (default is rmsprop)')
 parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
@@ -96,15 +96,19 @@ crnn = crnn.CRNN(opt.imgH, nc, nclass, opt.nh)
 crnn.apply(weights_init)
 if opt.crnn != '':
     print('loading pretrained model from %s' % opt.crnn)
-    state_dict = torch.load(opt.crnn, map_location=lambda storage, loc: storage)
-    from collections import OrderedDict
-    new_state_dict = OrderedDict()
-    for k, v in state_dict.items():
-        name = k[7:] # remove `module.`
-        new_state_dict[name] = v
-    # load params
-    crnn.load_state_dict(new_state_dict)
-    #crnn.load_state_dict(torch.load(opt.crnn))
+    is_parallel = False
+    if is_parallel:
+        state_dict = torch.load(opt.crnn, map_location=lambda storage, loc: storage)
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:] # remove `module.`
+            new_state_dict[name] = v
+        ## load params
+        crnn.load_state_dict(new_state_dict)
+        #torch.save(crnn.state_dict(), '35.pth')
+    else:
+        crnn.load_state_dict(torch.load(opt.crnn))
 print(crnn)
 
 image = torch.FloatTensor(opt.batchSize, 3, opt.imgH, opt.imgH)
@@ -113,7 +117,7 @@ length = torch.IntTensor(opt.batchSize)
 
 if opt.cuda:
     crnn.cuda()
-    crnn = torch.nn.DataParallel(crnn, device_ids=range(opt.ngpu))
+    #crnn = torch.nn.DataParallel(crnn, device_ids=range(opt.ngpu))
     image = image.cuda()
     criterion = criterion.cuda()
 
@@ -147,6 +151,7 @@ def val(net, dataset, criterion, max_iter=100):
 
     i = 0
     n_correct = 0
+    n_uncorrect = 0
     loss_avg = utils.averager()
 
     max_iter = min(max_iter, len(data_loader))
@@ -172,11 +177,16 @@ def val(net, dataset, criterion, max_iter=100):
         preds = preds.transpose(1, 0).contiguous().view(-1)
         sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
         for pred, target in zip(sim_preds, cpu_texts):
-            if pred == target.lower().decode('utf-8'):
+            #if pred == target.lower().decode('utf-8'):
+            if pred == target.decode('utf-8'):
             #print(type(pred))
             #print(type(target))
             #if pred == target:
                 n_correct += 1
+            else:
+                print (pred, ' : ', target.decode('utf-8'))
+                n_uncorrect += 1
+
 
     raw_preds = converter.decode(preds.data, preds_size.data, raw=True)[:opt.n_test_disp]
     sim_preds = converter.decode(preds.data, preds_size.data, raw=False)[:opt.n_test_disp]
@@ -184,7 +194,9 @@ def val(net, dataset, criterion, max_iter=100):
         print(raw_pred, " => ", pred, "gt:", gt)
         #print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
 
-    accuracy = n_correct / float(max_iter * opt.batchSize)
+    #accuracy = n_correct / float(max_iter * opt.batchSize)
+    print('correct vs uncorrect: %d %d' % (n_correct, n_uncorrect))
+    accuracy = n_correct / float(n_correct+n_uncorrect)
     print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
 
 

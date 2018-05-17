@@ -43,7 +43,7 @@ def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkV
     cache = {}
     cnt = 1
     for i in xrange(nSamples):
-        imagePath = '../data/zh/img/'+''.join(imagePathList[i]).split()[0].replace('\n','').replace('\r\n','')
+        imagePath = '../data/card10w/img/'+''.join(imagePathList[i]).split()[0].replace('\n','').replace('\r\n','')
         label = ''.join(labelList[i])
         print(label)
         if not os.path.exists(imagePath):
@@ -77,8 +77,8 @@ def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkV
 
 
 if __name__ == '__main__':
-    outputPath = "../data/zh/val_lmdb"
-    imgdata = open("../data/zh/test.txt")
+    outputPath = "../data/card10w/train_lmdb"
+    imgdata = open("../data/card10w/train.txt")
     imagePathList = list(imgdata)
 
     labelList = []
